@@ -1,7 +1,7 @@
 import logging
 import os
 
-from utils.mail import EmailClient
+from utils.client import EmailClient
 from telegram import ParseMode
 from telegram.constants import MAX_MESSAGE_LENGTH
 from telegram.ext import (Updater, CommandHandler)
@@ -13,6 +13,15 @@ logger = logging.getLogger(__name__)
 
 bot_token = os.environ['TELEGRAM_TOKEN']
 
+def handle_large_text(text):
+    while text:
+        if len(text) < MAX_MESSAGE_LENGTH:
+            yield text
+            text = None
+        else:
+            out = text[:MAX_MESSAGE_LENGTH]
+            yield out
+            text = text.lstrip(out)
 
 def error(bot, update, _error):
     """Log Errors caused by Updates."""
@@ -49,22 +58,10 @@ def get_email(bot, update, args):
     index = args[0]
     with EmailClient(email_addr, email_passwd) as client:
         mail = client.get_mail_by_index(index)
-        subject = "*Subject*: %s\n" % mail.subject
-        sender = "*From*: %s - %s\n" % (mail.from_nickname, mail.from_account)
-        date = "*Date*: %s\n" % mail.receivedtime
-        bot.send_message(update.message.chat_id,
-                         parse_mode=ParseMode.MARKDOWN,
-                         text=subject+sender+date)
-        if len(mail.text_content) > MAX_MESSAGE_LENGTH:
-            text = mail.text_content[0:4096]
+        content = mail.__repr__()
+        for text in handle_large_text(content):
             bot.send_message(update.message.chat_id,
                              text=text)
-            mail.text_content = mail.text_content.lstrip(text)
-        if mail.text_content:
-            bot.send_message(update.message.chat_id,
-                             text=mail.text_content)
-        
-
 
 def main():
     # Create the EventHandler and pass it your bot's token.
