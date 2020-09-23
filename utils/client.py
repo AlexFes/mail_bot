@@ -1,5 +1,6 @@
 import logging
 import poplib
+import smtplib
 from utils.mail import Email
 
 
@@ -16,8 +17,8 @@ class EmailClient(object):
     @staticmethod
     def connect(self):
         # parse the server's hostname from email account
-        pop3_server = 'pop.'+self.email_account.split('@')[-1]
-        server = poplib.POP3_SSL(pop3_server)
+        # pop3_server = 'pop.'+self.email_account.split('@')[-1]
+        server = poplib.POP3_SSL("pop.yandex.ru")
         # display the welcome info received from server,
         # indicating the connection is set up properly
         logger.info(server.getwelcome().decode('utf8'))
@@ -25,6 +26,15 @@ class EmailClient(object):
         server.user(self.email_account)
         server.pass_(self.password)
         return server
+
+    def send_mail(self, to, subject, text):
+        smtp_server = smtplib.SMTP("smtp.yandex.ru", 587)
+        smtp_server.starttls()
+        smtp_server.login(self.email_account, self.password)
+
+        body = "\r\n".join(("From: %s" % self.email_account, "To: %s" % to, "Subject: %s" % subject , "", text))
+        smtp_server.sendmail(self.email_account, [to], body)
+        smtp_server.quit()
 
     def get_mails_list(self):
         _, mails, _ = self.server.list()

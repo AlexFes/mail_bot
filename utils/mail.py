@@ -27,3 +27,6 @@ class Email(object):
         if self.text:
             mail_str += "Text: %s\n" % self.text
         return mail_str
+
+    def get_reply_data(self):
+        return (self.sender[1], "Re: " + self.subject) 

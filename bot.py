@@ -7,7 +7,7 @@ from utils.client import EmailClient
 
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s:%(lineno)d'
-                           ' - %(message)s', filename='/var/log/mailbot.log',
+                           ' - %(message)s', filename='../mailbot.log',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,7 @@ def _help(bot, update):
     """Send a message when the command /help is issued."""
     help_str = "*Mailbox Setting*: \n" \
                "/setting 123456@example.com yourpassword"
-    bot.send_message(update.message.chat_id, 
+    bot.send_message(update.message.chat_id,
                     parse_mode=ParseMode.MARKDOWN,
                     text=help_str)
 
@@ -90,6 +90,20 @@ def get_email(bot, update, args):
             bot.send_message(update.message.chat_id,
                              text=text)
 
+def reply(bot, update, args):
+    logger.info("recieved reply command.")
+    try:
+        with EmailClient(email_addr, email_passwd) as client:
+            last_mail = client.get_mail_by_index(1)
+
+            to, subject = last_mail.get_reply_data()
+            text = " ".join(args)
+            print("to = {} subject = {} text = {}".format(to, subject, text))
+            client.send_mail(to, subject, text)
+            bot.send_message(update.message.chat_id, text="Message sent")
+    except:
+        bot.send_message(update.message.chat_id, text="Reply failed")
+
 def main():
     # Create the EventHandler and pass it your bot's token.
     updater = Updater(token=bot_token)
@@ -110,6 +124,7 @@ def main():
 
     dp.add_handler(CommandHandler("get", get_email, pass_args=True))
 
+    dp.add_handler(CommandHandler("reply", reply, pass_args=True))
 
     dp.add_error_handler(error)
 
