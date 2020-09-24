@@ -24,7 +24,6 @@ def handle_large_text(text):
             text = text.lstrip(out)
 
 def error(bot, update, _error):
-    """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, _error)
 
 def start_callback(bot, update):
@@ -32,11 +31,14 @@ def start_callback(bot, update):
     update.message.reply_text(msg)
 
 def _help(bot, update):
-    """Send a message when the command /help is issued."""
     help_str = "*Mailbox Setting*: \n" \
                "/setting 123456@example.com yourpassword \n" \
-               "*Reply message*: \n" \
-               "/reply Enter your text here"
+               "*Get 'n' latest messages (3 by default):* \n" \
+               "/get n\n" \
+               "*Reply the last message*: \n" \
+               "/reply Enter your text here \n" \
+               "*Reply to 'email'*: \n" \
+               "/replyto email Enter your text here"
     bot.send_message(update.message.chat_id,
                     parse_mode=ParseMode.MARKDOWN,
                     text=help_str)
@@ -68,29 +70,32 @@ def periodic_task(bot, job):
                                 text=text)
             inbox_num = new_inbox_num
 
-def inbox(bot, update):
-    logger.info("received inbox command.")
-    with EmailClient(email_addr, email_passwd) as client:
-        global inbox_num
-        new_num = client.get_mails_count()
-        reply_text = "The index of newest mail is *%d*," \
-                     " received *%d* new mails since last" \
-                     " time you checked." % \
-                     (new_num, new_num - inbox_num)
-        inbox_num = new_num
-        bot.send_message(update.message.chat_id,
-                        parse_mode=ParseMode.MARKDOWN,
-                        text=reply_text)
+# def inbox(bot, update):
+#     logger.info("received inbox command.")
+#     with EmailClient(email_addr, email_passwd) as client:
+#         global inbox_num
+#         new_num = client.get_mails_count()
+#         reply_text = "The index of newest mail is *%d*," \
+#                      " received *%d* new mails since last" \
+#                      " time you checked." % \
+#                      (new_num, new_num - inbox_num)
+#         inbox_num = new_num
+#         bot.send_message(update.message.chat_id,
+#                         parse_mode=ParseMode.MARKDOWN,
+#                         text=reply_text)
 
 def get_email(bot, update, args):
-    index = args[0]
+    count = 3
+    if (len(args)):
+        count = int(args[0])
     logger.info("received get command.")
     with EmailClient(email_addr, email_passwd) as client:
-        mail = client.get_mail_by_index(index)
-        content = mail.__repr__()
-        for text in handle_large_text(content):
-            bot.send_message(update.message.chat_id,
-                             text=text)
+        for i in range(1, count + 1):
+            mail = client.get_mail_by_index(i)
+            content = mail.__repr__()
+            for text in handle_large_text(content):
+                bot.send_message(update.message.chat_id,
+                                 text=text)
 
 def reply(bot, update, args):
     logger.info("recieved reply command.")
@@ -100,42 +105,43 @@ def reply(bot, update, args):
 
             to, subject = last_mail.get_reply_data()
             text = " ".join(args)
-            print("to = {} subject = {} text = {}".format(to, subject, text))
+            logger.info("to = {} subject = {} text = {}".format(to, subject, text))
+            client.send_mail(to, subject, text)
+            bot.send_message(update.message.chat_id, text="Message sent")
+    except:
+        bot.send_message(update.message.chat_id, text="Reply failed")
+
+def replyto(bot, update, args):
+    logger.info("recieved replyto command.")
+    try:
+        with EmailClient(email_addr, email_passwd) as client:
+            last_mail = client.get_mail_by_index(1)
+
+            to, subject = (args[0], "Re")
+            text_list = list(map(lambda x: x.decode('utf-8', 'ignore'), args[1:]))
+            text = " ".join(text_list)
+            logger.info("to = {} subject = {} text = {}".format(to, subject, text))
             client.send_mail(to, subject, text)
             bot.send_message(update.message.chat_id, text="Message sent")
     except:
         bot.send_message(update.message.chat_id, text="Reply failed")
 
 def main():
-    # Create the EventHandler and pass it your bot's token.
     updater = Updater(token=bot_token)
-
-    # Get the dispatcher to register handlers
     dp = updater.dispatcher
 
-    # simple start function
     dp.add_handler(CommandHandler("start", start_callback))
-
     dp.add_handler(CommandHandler("help", _help))
-    #
-    #  Add command handler to set email address and account.
     dp.add_handler(CommandHandler("setting", setting_email, pass_args=True,
                                   pass_job_queue=True, pass_chat_data=True))
 
-    dp.add_handler(CommandHandler("inbox", inbox))
-
+    # dp.add_handler(CommandHandler("inbox", inbox))
     dp.add_handler(CommandHandler("get", get_email, pass_args=True))
-
     dp.add_handler(CommandHandler("reply", reply, pass_args=True))
-
+    dp.add_handler(CommandHandler("replyto", replyto, pass_args=True))
     dp.add_error_handler(error)
 
-    # Start the Bot
     updater.start_polling()
-
-    # Run the bot until you press Ctrl-C or the process receives SIGINT,
-    # SIGTERM or SIGABRT. This should be used most of the time, since
-    # start_polling() is non-blocking and will stop the bot gracefully.
     updater.idle()
 
 

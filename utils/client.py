@@ -16,13 +16,8 @@ class EmailClient(object):
 
     @staticmethod
     def connect(self):
-        # parse the server's hostname from email account
-        # pop3_server = 'pop.'+self.email_account.split('@')[-1]
         server = poplib.POP3_SSL("pop.yandex.ru")
-        # display the welcome info received from server,
-        # indicating the connection is set up properly
         logger.info(server.getwelcome().decode('utf8'))
-        # authenticating
         server.user(self.email_account)
         server.pass_(self.password)
         return server
