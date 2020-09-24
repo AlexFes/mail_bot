@@ -34,7 +34,9 @@ def start_callback(bot, update):
 def _help(bot, update):
     """Send a message when the command /help is issued."""
     help_str = "*Mailbox Setting*: \n" \
-               "/setting 123456@example.com yourpassword"
+               "/setting 123456@example.com yourpassword \n" \
+               "*Reply message*: \n" \
+               "/reply Enter your text here"
     bot.send_message(update.message.chat_id,
                     parse_mode=ParseMode.MARKDOWN,
                     text=help_str)
@@ -48,7 +50,7 @@ def setting_email(bot, update, args, job_queue, chat_data):
     update.message.reply_text("Configure email success!")
     with EmailClient(email_addr, email_passwd) as client:
         inbox_num = client.get_mails_count()
-    job = job_queue.run_repeating(periodic_task, 120, context=chat_id)
+    job = job_queue.run_repeating(periodic_task, 5, context=chat_id)
     chat_data['job'] = job
     logger.info("periodic task scheduled.")
 
@@ -59,7 +61,7 @@ def periodic_task(bot, job):
     with EmailClient(email_addr, email_passwd) as client:
         new_inbox_num = client.get_mails_count()
         if new_inbox_num > inbox_num:
-            mail = client.get_mail_by_index(new_inbox_num)
+            mail = client.get_mail_by_index(1)
             content = mail.__repr__()
             for text in handle_large_text(content):
                 bot.send_message(job.context,
