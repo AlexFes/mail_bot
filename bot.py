@@ -118,7 +118,7 @@ def replyto(bot, update, args):
             last_mail = client.get_mail_by_index(1)
 
             to, subject = (args[0], "Re")
-            text_list = list(map(lambda x: x.decode('utf-8', 'ignore'), args[1:]))
+            text_list = args[1:]
             text = " ".join(text_list)
             logger.info("to = {} subject = {} text = {}".format(to, subject, text))
             client.send_mail(to, subject, text)
