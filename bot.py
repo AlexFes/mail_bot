@@ -37,8 +37,8 @@ def _help(bot, update):
                "/get n\n" \
                "*Reply the last message*: \n" \
                "/reply Enter your text here \n" \
-               "*Reply to 'email'*: \n" \
-               "/replyto email Enter your text here"
+               # "*Reply to 'email'*: \n" \
+               # "/replyto email Enter your text here"
     bot.send_message(update.message.chat_id,
                     parse_mode=ParseMode.MARKDOWN,
                     text=help_str)
@@ -70,20 +70,6 @@ def periodic_task(bot, job):
                                 text=text)
             inbox_num = new_inbox_num
 
-# def inbox(bot, update):
-#     logger.info("received inbox command.")
-#     with EmailClient(email_addr, email_passwd) as client:
-#         global inbox_num
-#         new_num = client.get_mails_count()
-#         reply_text = "The index of newest mail is *%d*," \
-#                      " received *%d* new mails since last" \
-#                      " time you checked." % \
-#                      (new_num, new_num - inbox_num)
-#         inbox_num = new_num
-#         bot.send_message(update.message.chat_id,
-#                         parse_mode=ParseMode.MARKDOWN,
-#                         text=reply_text)
-
 def get_email(bot, update, args):
     count = 3
     if (len(args)):
@@ -111,20 +97,20 @@ def reply(bot, update, args):
     except:
         bot.send_message(update.message.chat_id, text="Reply failed")
 
-def replyto(bot, update, args):
-    logger.info("recieved replyto command.")
-    try:
-        with EmailClient(email_addr, email_passwd) as client:
-            last_mail = client.get_mail_by_index(1)
-
-            to, subject = (args[0], "Re")
-            text_list = args[1:]
-            text = " ".join(text_list)
-            logger.info("to = {} subject = {} text = {}".format(to, subject, text))
-            client.send_mail(to, subject, text)
-            bot.send_message(update.message.chat_id, text="Message sent")
-    except:
-        bot.send_message(update.message.chat_id, text="Reply failed")
+# def replyto(bot, update, args):
+#     logger.info("recieved replyto command.")
+#     try:
+#         with EmailClient(email_addr, email_passwd) as client:
+#             last_mail = client.get_mail_by_index(1)
+#
+#             to, subject = (args[0], "Re")
+#             text_list = args[1:]
+#             text = " ".join(text_list)
+#             logger.info("to = {} subject = {} text = {}".format(to, subject, text))
+#             client.send_mail(to, subject, text)
+#             bot.send_message(update.message.chat_id, text="Message sent")
+#     except:
+#         bot.send_message(update.message.chat_id, text="Reply failed")
 
 def main():
     updater = Updater(token=bot_token)
@@ -135,10 +121,9 @@ def main():
     dp.add_handler(CommandHandler("setting", setting_email, pass_args=True,
                                   pass_job_queue=True, pass_chat_data=True))
 
-    # dp.add_handler(CommandHandler("inbox", inbox))
     dp.add_handler(CommandHandler("get", get_email, pass_args=True))
     dp.add_handler(CommandHandler("reply", reply, pass_args=True))
-    dp.add_handler(CommandHandler("replyto", replyto, pass_args=True))
+    # dp.add_handler(CommandHandler("replyto", replyto, pass_args=True))
     dp.add_error_handler(error)
 
     updater.start_polling()
