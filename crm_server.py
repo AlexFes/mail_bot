@@ -8,10 +8,14 @@ from google.auth.transport.requests import Request
 from utils.client import EmailClient
 from utils.mail import Email
 
-# usage: export email_addr=youraddress@yandex.ru email_passwd=yourpassword sheet_id=googledocid
+# Usage: export email_addr= email_passwd= sheet_id=
 email_addr = os.environ['email_addr']
 email_passwd = os.environ['email_passwd']
 sheet_id = os.environ['sheet_id']
+header = ["Project", "Sent", "Email", "Name",
+           "Source", "Direction", "Cost, $", "Payment", "Currency",
+           "Deadline", "Manager", "Status", "Notes",
+           "Reason for lost/Shifted start", "CLIENT | Data of last letter", "OUR | Data of last letter"]
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -38,42 +42,53 @@ def authenticate():
     return creds
 
 
+def read_line(sheet):
+    pass
+
+
+def write_line(sheet, row, line):
+    header_body = {
+        "values": [line]
+    }
+
+    result = sheet.values().update(spreadsheetId=sheet_id,
+                        range="A{}:P{}".format(row, row),
+                        valueInputOption="RAW",
+                        body=header_body).execute()
+
+    print('{} cells updated at row={}'.format(result.get('updatedCells'), row))
+    
+
+def write_our_date(sheet, row, date):
+    pass
+
+
+def write_client_date(sheet, row, date):
+    pass
+
+
 def get_inbox():
-    pass
+    with EmailClient(email_addr, email_passwd) as client:
+        count = client.get_mails_count()
+        inbox_list = []
 
+        for i in range(1, count + 1):
+            mail = client.get_mail_by_index(i)
+            content = mail.__repr__()
+            inbox_list.append(content)
 
-def get_sheet_lines():
-    pass
-
-
-def write_line():
-    pass
+        return inbox_list
 
 
 def start(sheet):
-    result = sheet.values().get(spreadsheetId=sheet_id,
-                                range='B3:B10').execute()
-    values = result.get('values', [])
-
-    if not values:
-        print('No data found.')
-    else:
-        print(values)
-
+    # Setup header row
+    write_line(sheet, 1, header)
 
 if __name__ == '__main__':
+    # Authenticate
     credentials = authenticate()
     service = build('sheets', 'v4', credentials=credentials)
     spreadsheet = service.spreadsheets()
 
+    # Start polling yandex mail
     start(spreadsheet)
-
-
-# if __name__ == "__main__":
-#     with EmailClient(email_addr, email_passwd) as client:
-#         count = client.get_mails_count()
-#
-#         for i in range(1, count +1):
-#             mail = client.get_mail_by_index(i)
-#             content = mail.__repr__()
-#             print(content)
