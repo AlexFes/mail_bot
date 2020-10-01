@@ -108,3 +108,6 @@ venv.bak/
 
 #vscode files
 .vscode/
+
+credentials.json
+token.pickle
