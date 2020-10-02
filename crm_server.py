@@ -4,6 +4,7 @@ import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from datetime import datetime
 
 from utils.client import EmailClient
 from utils.mail import Email
@@ -42,8 +43,10 @@ def authenticate():
     return creds
 
 
-def read_line(sheet):
-    pass
+def read_line(sheet, row):
+    result = sheet.values().get(
+        spreadsheetId=sheet_id, range="A{}:P{}".format(row, row)).execute()
+    return result.get('values', [])
 
 
 def write_line(sheet, row, line):
@@ -74,21 +77,49 @@ def get_inbox():
 
         for i in range(1, count + 1):
             mail = client.get_mail_by_index(i)
-            content = mail.__repr__()
+            content = mail.get_line_data()
             inbox_list.append(content)
 
         return inbox_list
 
 
+def get_table(inbox):
+    table = {}
+    result = []
+
+    for mail in reversed(inbox):
+        sender, subject, date = mail
+        date_obj = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
+
+        if sender[1] not in table:
+            table[sender[1]] = (sender[0], subject, str(date_obj.date()))
+        else:
+            continue
+
+    for key, value in table.items():
+        result.append(['', value[2], key, value[0], '', '', '', '', '', '', '', '', value[1], '', '', ''])
+
+    return result
+
+
+def update_sheet(sheet, table):
+    for ind, line in enumerate(table):
+        write_line(sheet, ind + 3, line)
+
+
 def start(sheet):
-    # Setup header row
-    write_line(sheet, 1, header)
+    new_table = get_table(get_inbox())
+    update_sheet(sheet, new_table)
+
 
 if __name__ == '__main__':
     # Authenticate
     credentials = authenticate()
     service = build('sheets', 'v4', credentials=credentials)
     spreadsheet = service.spreadsheets()
+
+    # Setup header row
+    write_line(spreadsheet, 1, header)
 
     # Start polling yandex mail
     start(spreadsheet)

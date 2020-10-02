@@ -29,4 +29,7 @@ class Email(object):
         return mail_str
 
     def get_reply_data(self):
-        return (self.sender[1], "Re: " + self.subject) 
+        return self.sender[1], "Re: " + self.subject
+
+    def get_line_data(self):
+        return self.sender, self.subject, self.date
