@@ -1,3 +1,4 @@
+from datetime import datetime
 from pyzmail import PyzMessage, decode_text
 
 class Email(object):
@@ -33,4 +34,4 @@ class Email(object):
         return self.sender[1], "Re: " + self.subject
 
     def get_line_data(self):
-        return self.sender, self.subject, self.date, self.to
+        return self.sender, self.subject, datetime.strptime(self.date, '%a, %d %b %Y %H:%M:%S %z'), self.to

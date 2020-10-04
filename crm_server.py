@@ -1,5 +1,6 @@
 from __future__ import print_function
 import pickle
+import time
 import os.path
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -43,12 +44,6 @@ def authenticate():
     return creds
 
 
-def read_line(sheet, row):
-    result = sheet.values().get(
-        spreadsheetId=sheet_id, range="A{}:P{}".format(row, row)).execute()
-    return result.get('values', [])
-
-
 def write_line(sheet, row, line):
     header_body = {
         "values": [line]
@@ -61,14 +56,6 @@ def write_line(sheet, row, line):
 
     print('{} cells updated at row={}'.format(result.get('updatedCells'), row))
     
-
-def write_our_date(sheet, row, date):
-    pass
-
-
-def write_client_date(sheet, row, date):
-    pass
-
 
 def get_inbox():
     with EmailClient(email_addr, email_passwd) as client:
@@ -86,13 +73,10 @@ def get_inbox():
 def get_table(inbox):
     table = {}
     result = []
-
-    inbox.sort(lambda tup: datetime.strptime(tup[2], '%a, %d %b %Y %H:%M:%S %z'))
+    inbox.sort(key=lambda tup: tup[2])
 
     for mail in inbox:
-        print(mail)
         sender, subject, date, to = mail
-        date_obj = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
 
         # Client mail
         if sender[1] != email_addr:
@@ -101,13 +85,13 @@ def get_table(inbox):
                 table[sender[1]] = {
                     "sender": sender[0],
                     "subject": subject,
-                    "date": str(date_obj.date()),
-                    "client_date": str(date_obj.date()),
+                    "date": str(date.date()),
+                    "client_date": str(date.date()),
                     "our_date": ""
                 }
             # Update line
             else:
-                table[sender[1]]["client_date"] = str(date_obj.date())
+                table[sender[1]]["client_date"] = str(date.date())
 
         # Our mail
         else:
@@ -116,30 +100,50 @@ def get_table(inbox):
                 table[to[1]] = {
                     "sender": to[0],
                     "subject": subject,
-                    "date": str(date_obj.date()),
+                    "date": str(date.date()),
                     "client_date": "",
-                    "our_date": str(date_obj.date())
+                    "our_date": str(date.date())
                 }
             # Update line
             else:
-                table[to[1]]["our_date"] = str(date_obj.date())
+                table[to[1]]["our_date"] = str(date.date())
 
     for key, value in table.items():
-        result.append(['', value["date"], key, value["sender"],
-                       '', '', '', '', '', '', '', '',
-                       value["subject"], '', value["client_date"], value["our_date"]])
+        result.append([value["date"], key, value["sender"],
+                       value["subject"], value["client_date"], value["our_date"]])
 
     return result
 
 
 def update_sheet(sheet, table):
+    data = []
+
     for ind, line in enumerate(table):
-        write_line(sheet, ind + 3, line)
+        data.append({
+            "range": "B{}:D{}".format(ind + 3, ind + 3),
+            "values": [line[:3]]
+        })
+        data.append({
+            "range": "M{}".format(ind + 3),
+            "values": [[line[3]]]
+        })
+        data.append({
+            "range": "O{}:P{}".format(ind + 3, ind + 3),
+            "values": [line[4:]]
+        })
+
+    body = {
+        "valueInputOption": "RAW",
+        "data": data
+    }
+
+    result = sheet.values().batchUpdate(spreadsheetId=sheet_id, body=body).execute()
+    print('{0} cells updated.'.format(result.get('totalUpdatedCells')))
 
 
 def start(sheet):
     new_table = get_table(get_inbox())
-    # update_sheet(sheet, new_table)
+    update_sheet(sheet, new_table)
 
 
 if __name__ == '__main__':
@@ -152,4 +156,6 @@ if __name__ == '__main__':
     write_line(spreadsheet, 1, header)
 
     # Start polling yandex mail
-    start(spreadsheet)
+    while True:
+        start(spreadsheet)
+        time.sleep(10)
