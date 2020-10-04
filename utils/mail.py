@@ -7,6 +7,7 @@ class Email(object):
 
         self.subject = msg.get_subject()
         self.sender = msg.get_address('from')
+        self.to = msg.get_addresses('to')[0]
         self.date = msg.get_decoded_header('date', '')
         self.id = msg.get_decoded_header('message-id', '')
 
@@ -32,4 +33,4 @@ class Email(object):
         return self.sender[1], "Re: " + self.subject
 
     def get_line_data(self):
-        return self.sender, self.subject, self.date
+        return self.sender, self.subject, self.date, self.to

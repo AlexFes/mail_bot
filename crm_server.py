@@ -87,17 +87,47 @@ def get_table(inbox):
     table = {}
     result = []
 
-    for mail in reversed(inbox):
-        sender, subject, date = mail
+    inbox.sort(lambda tup: datetime.strptime(tup[2], '%a, %d %b %Y %H:%M:%S %z'))
+
+    for mail in inbox:
+        print(mail)
+        sender, subject, date, to = mail
         date_obj = datetime.strptime(date, '%a, %d %b %Y %H:%M:%S %z')
 
-        if sender[1] not in table:
-            table[sender[1]] = (sender[0], subject, str(date_obj.date()))
+        # Client mail
+        if sender[1] != email_addr:
+            # New line
+            if sender[1] not in table:
+                table[sender[1]] = {
+                    "sender": sender[0],
+                    "subject": subject,
+                    "date": str(date_obj.date()),
+                    "client_date": str(date_obj.date()),
+                    "our_date": ""
+                }
+            # Update line
+            else:
+                table[sender[1]]["client_date"] = str(date_obj.date())
+
+        # Our mail
         else:
-            continue
+            # New line
+            if to[1] not in table:
+                table[to[1]] = {
+                    "sender": to[0],
+                    "subject": subject,
+                    "date": str(date_obj.date()),
+                    "client_date": "",
+                    "our_date": str(date_obj.date())
+                }
+            # Update line
+            else:
+                table[to[1]]["our_date"] = str(date_obj.date())
 
     for key, value in table.items():
-        result.append(['', value[2], key, value[0], '', '', '', '', '', '', '', '', value[1], '', '', ''])
+        result.append(['', value["date"], key, value["sender"],
+                       '', '', '', '', '', '', '', '',
+                       value["subject"], '', value["client_date"], value["our_date"]])
 
     return result
 
@@ -109,7 +139,7 @@ def update_sheet(sheet, table):
 
 def start(sheet):
     new_table = get_table(get_inbox())
-    update_sheet(sheet, new_table)
+    # update_sheet(sheet, new_table)
 
 
 if __name__ == '__main__':
