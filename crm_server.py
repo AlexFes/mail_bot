@@ -144,13 +144,13 @@ def update_sheet(sheet, table):
             "values": [line[4:6]]
         })
 
-        try:
-            if line[6]:
-                send_standard_reply(line[1],
-                                    "SmartDec | Smart Contract Services",
-                                    "Hi " + line[2] + "! Great seeing you today. Looking forward to connecting soon!")
-        except Exception as e:
-            print('failed to send message to: {}\n{}'.format(line[1], e))
+        # try:
+        #     if line[6]:
+        #         send_standard_reply(line[1],
+        #                             "Hello",
+        #                             "Hi! Great seeing you today. Looking forward to connecting soon!")
+        # except Exception as e:
+        #     print('failed to send message to: {}\n{}'.format(line[1], e))
 
     body = {
         "valueInputOption": "RAW",
@@ -176,7 +176,7 @@ if __name__ == '__main__':
     write_line(spreadsheet, 1, header)
 
     # Start polling yandex mail
-    # start(spreadsheet)
-    while True:
-        start(spreadsheet)
-        time.sleep(10)
+    start(spreadsheet)
+    # while True:
+    #     start(spreadsheet)
+    #     time.sleep(10)

@@ -3,6 +3,7 @@ import poplib
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.header import Header
 
 from utils.mail import Email
 
@@ -30,16 +31,23 @@ class EmailClient(object):
         smtp_server.starttls()
         smtp_server.login(self.email_account, self.password)
 
-        msg = MIMEMultipart()
+        msg = MIMEText(text, "plain", "utf-8")
         msg['From'] = self.email_account
         msg['To'] = to
-        msg['Subject'] = subject
-        msg.attach(MIMEText(text, 'plain'))
+        msg['Subject'] = Header(subject)
+        print(msg.as_string())
+        smtp_server.sendmail(msg['From'], [msg['To']], msg.as_string())
+        #
+        # msg = MIMEMultipart()
+        # msg['From'] = self.email_account
+        # msg['To'] = to
+        # msg['Subject'] = subject
+        # msg.attach(MIMEText(text, 'plain'))
 
         # body = "\r\n".join(("From: %s" % self.email_account, "To: %s" % to, "Subject: %s" % Header(subject, 'utf-8'), "", MIMEText(text, 'plain', 'utf-8').as_string()))
         # body = "\r\n".join(("From: %s" % self.email_account, "To: %s" % to, "Subject: %s" % subject, "", text))
         # smtp_server.sendmail(self.email_account, [to], body)
-        smtp_server.sendmail(msg['From'], msg['To'], msg.as_string())
+        # smtp_server.sendmail(msg['From'], msg['To'], msg.as_string())
         smtp_server.quit()
 
     def get_mails_list(self):
